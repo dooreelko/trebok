@@ -533,7 +533,7 @@ _bok() {
             return 0
             ;;
         bok__init)
-            opts="-h -V --help --version"
+            opts="-h -V --help --version [BLURB]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -575,12 +575,16 @@ _bok() {
             return 0
             ;;
         bok__node__add)
-            opts="-h -V --help --version <BLURB>"
+            opts="-h -V --under --help --version [BLURB]..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 3 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --under)
+                    COMPREPLY=($(compgen -W "1920756076 1745870245 1050403852 171088983" -- "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;

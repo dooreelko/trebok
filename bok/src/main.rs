@@ -1,7 +1,16 @@
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{builder::PossibleValuesParser, CommandFactory, Parser, Subcommand};
 use clap_complete::{generate, shells};
 
 mod commands;
+
+// HACK: This is a workaround for clap's dynamic completions.
+// It leaks memory, but this function is only called when generating completions,
+// so it's a small, one-time leak.
+fn get_node_hashes_for_clap() -> Vec<&'static str> {
+    let hashes = commands::node::get_all_node_hashes();
+    let leaked: &'static Vec<String> = Box::leak(Box::new(hashes));
+    leaked.iter().map(|s| s.as_str()).collect()
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -61,6 +70,9 @@ enum Commands {
 enum NodeAction {
     /// Adds a new node
     Add {
+        /// The parent node hash under which to create the new node
+        #[arg(long, value_parser = PossibleValuesParser::new(get_node_hashes_for_clap()))]
+        under: Option<String>,
         /// A short blurb for the new node
         blurb: Vec<String>,
     },
@@ -99,7 +111,9 @@ fn main() {
             }
         }
         Commands::Node { action } => match action {
-            NodeAction::Add { blurb } => commands::node::add(&blurb.join(" ")),
+            NodeAction::Add { blurb, under } => {
+                commands::node::add(&blurb.join(" "), under.as_deref())
+            }
             NodeAction::Rm { node } => commands::node::rm(node),
             NodeAction::Ls => commands::node::ls(),
         },
@@ -124,3 +138,4 @@ fn main() {
         }
     }
 }
+
