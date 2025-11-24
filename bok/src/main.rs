@@ -1,9 +1,11 @@
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, shells};
 
 mod commands;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
+#[command(propagate_version = true)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -44,6 +46,11 @@ enum Commands {
     Import {
         /// The qmd file to import
         file: String,
+    },
+    /// Generate shell completions
+    Completion {
+        #[arg(value_enum)]
+        shell: shells::Shell,
     },
 }
 
@@ -98,5 +105,13 @@ fn main() {
         Commands::Copyedit { node } => commands::copyedit::run(node),
         Commands::Check => commands::check::run(),
         Commands::Import { file } => commands::import::run(file),
+        Commands::Completion { shell } => {
+            generate(
+                *shell,
+                &mut Cli::command(),
+                "bok",
+                &mut std::io::stdout(),
+            );
+        }
     }
 }
