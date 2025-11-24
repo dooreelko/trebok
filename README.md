@@ -20,6 +20,12 @@ Alternatively, you can move the completion file to your Bash completions directo
 sudo mv /home/doo/projects/trebok/bok/completions/bok.bash /etc/bash_completion.d/
 ```
 
+Or, to source the completion script directly without saving it to a file:
+
+```bash
+source <(/home/doo/projects/trebok/bok/target/release/bok completion bash)
+```
+
 ### Zsh
 
 To enable completion for Zsh, add the following to your `~/.zshrc`:
