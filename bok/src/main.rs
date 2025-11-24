@@ -14,7 +14,10 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Initializes a new book
-    Init,
+    Init {
+        /// An optional blurb for the starting node
+        blurb: Vec<String>,
+    },
     /// Adds, removes, or lists nodes
     Node {
         #[command(subcommand)]
@@ -59,7 +62,7 @@ enum NodeAction {
     /// Adds a new node
     Add {
         /// A short blurb for the new node
-        blurb: String,
+        blurb: Vec<String>,
     },
     /// Removes a node
     Rm {
@@ -88,9 +91,15 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Init => commands::init::run(),
+        Commands::Init { blurb } => {
+            if blurb.is_empty() {
+                commands::init::run(None)
+            } else {
+                commands::init::run(Some(&blurb.join(" ")))
+            }
+        }
         Commands::Node { action } => match action {
-            NodeAction::Add { blurb } => commands::node::add(blurb),
+            NodeAction::Add { blurb } => commands::node::add(&blurb.join(" ")),
             NodeAction::Rm { node } => commands::node::rm(node),
             NodeAction::Ls => commands::node::ls(),
         },
