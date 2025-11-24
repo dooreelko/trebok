@@ -1,0 +1,683 @@
+#compdef bok
+
+autoload -U is-at-least
+
+_bok() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_bok_commands" \
+"*::: :->bok" \
+&& ret=0
+    case $state in
+    (bok)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-command-$line[1]:"
+        case $line[1] in
+            (init)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+&& ret=0
+;;
+(node)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_bok__node_commands" \
+"*::: :->node" \
+&& ret=0
+
+    case $state in
+    (node)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-node-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':blurb -- A short blurb for the new node:_default' \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':node -- The node to remove:_default' \
+&& ret=0
+;;
+(ls)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__node__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-node-help-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(ls)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(vis)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_bok__vis_commands" \
+"*::: :->vis" \
+&& ret=0
+
+    case $state in
+    (vis)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-vis-command-$line[1]:"
+        case $line[1] in
+            (d3)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+&& ret=0
+;;
+(mermaid)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__vis__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-vis-help-command-$line[1]:"
+        case $line[1] in
+            (d3)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(mermaid)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(generate)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+":: :_bok__generate_commands" \
+"*::: :->generate" \
+&& ret=0
+
+    case $state in
+    (generate)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-generate-command-$line[1]:"
+        case $line[1] in
+            (quarto)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__generate__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-generate-help-command-$line[1]:"
+        case $line[1] in
+            (quarto)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+;;
+(lineedit)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':node -- The node to line edit:_default' \
+&& ret=0
+;;
+(copyedit)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':node -- The node to copy edit:_default' \
+&& ret=0
+;;
+(check)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+&& ret=0
+;;
+(import)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':file -- The qmd file to import:_default' \
+&& ret=0
+;;
+(completion)
+_arguments "${_arguments_options[@]}" : \
+'-h[Print help]' \
+'--help[Print help]' \
+'-V[Print version]' \
+'--version[Print version]' \
+':shell:(bash elvish fish powershell zsh)' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__help_commands" \
+"*::: :->help" \
+&& ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-help-command-$line[1]:"
+        case $line[1] in
+            (init)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(node)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__help__node_commands" \
+"*::: :->node" \
+&& ret=0
+
+    case $state in
+    (node)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-help-node-command-$line[1]:"
+        case $line[1] in
+            (add)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(rm)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(ls)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(vis)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__help__vis_commands" \
+"*::: :->vis" \
+&& ret=0
+
+    case $state in
+    (vis)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-help-vis-command-$line[1]:"
+        case $line[1] in
+            (d3)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(mermaid)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(generate)
+_arguments "${_arguments_options[@]}" : \
+":: :_bok__help__generate_commands" \
+"*::: :->generate" \
+&& ret=0
+
+    case $state in
+    (generate)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:bok-help-generate-command-$line[1]:"
+        case $line[1] in
+            (quarto)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+(lineedit)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(copyedit)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(check)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(import)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(completion)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" : \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_bok_commands] )) ||
+_bok_commands() {
+    local commands; commands=(
+'init:Initializes a new book' \
+'node:Adds, removes, or lists nodes' \
+'vis:Visualizes the book' \
+'generate:Generates the book in a specific format' \
+'lineedit:Line edits a node' \
+'copyedit:Copy edits a node' \
+'check:Runs checks on the book' \
+'import:Imports a qmd file' \
+'completion:Generate shell completions' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok commands' commands "$@"
+}
+(( $+functions[_bok__check_commands] )) ||
+_bok__check_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok check commands' commands "$@"
+}
+(( $+functions[_bok__completion_commands] )) ||
+_bok__completion_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok completion commands' commands "$@"
+}
+(( $+functions[_bok__copyedit_commands] )) ||
+_bok__copyedit_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok copyedit commands' commands "$@"
+}
+(( $+functions[_bok__generate_commands] )) ||
+_bok__generate_commands() {
+    local commands; commands=(
+'quarto:Generates a quarto book' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok generate commands' commands "$@"
+}
+(( $+functions[_bok__generate__help_commands] )) ||
+_bok__generate__help_commands() {
+    local commands; commands=(
+'quarto:Generates a quarto book' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok generate help commands' commands "$@"
+}
+(( $+functions[_bok__generate__help__help_commands] )) ||
+_bok__generate__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok generate help help commands' commands "$@"
+}
+(( $+functions[_bok__generate__help__quarto_commands] )) ||
+_bok__generate__help__quarto_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok generate help quarto commands' commands "$@"
+}
+(( $+functions[_bok__generate__quarto_commands] )) ||
+_bok__generate__quarto_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok generate quarto commands' commands "$@"
+}
+(( $+functions[_bok__help_commands] )) ||
+_bok__help_commands() {
+    local commands; commands=(
+'init:Initializes a new book' \
+'node:Adds, removes, or lists nodes' \
+'vis:Visualizes the book' \
+'generate:Generates the book in a specific format' \
+'lineedit:Line edits a node' \
+'copyedit:Copy edits a node' \
+'check:Runs checks on the book' \
+'import:Imports a qmd file' \
+'completion:Generate shell completions' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok help commands' commands "$@"
+}
+(( $+functions[_bok__help__check_commands] )) ||
+_bok__help__check_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help check commands' commands "$@"
+}
+(( $+functions[_bok__help__completion_commands] )) ||
+_bok__help__completion_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help completion commands' commands "$@"
+}
+(( $+functions[_bok__help__copyedit_commands] )) ||
+_bok__help__copyedit_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help copyedit commands' commands "$@"
+}
+(( $+functions[_bok__help__generate_commands] )) ||
+_bok__help__generate_commands() {
+    local commands; commands=(
+'quarto:Generates a quarto book' \
+    )
+    _describe -t commands 'bok help generate commands' commands "$@"
+}
+(( $+functions[_bok__help__generate__quarto_commands] )) ||
+_bok__help__generate__quarto_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help generate quarto commands' commands "$@"
+}
+(( $+functions[_bok__help__help_commands] )) ||
+_bok__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help help commands' commands "$@"
+}
+(( $+functions[_bok__help__import_commands] )) ||
+_bok__help__import_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help import commands' commands "$@"
+}
+(( $+functions[_bok__help__init_commands] )) ||
+_bok__help__init_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help init commands' commands "$@"
+}
+(( $+functions[_bok__help__lineedit_commands] )) ||
+_bok__help__lineedit_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help lineedit commands' commands "$@"
+}
+(( $+functions[_bok__help__node_commands] )) ||
+_bok__help__node_commands() {
+    local commands; commands=(
+'add:Adds a new node' \
+'rm:Removes a node' \
+'ls:Lists the node hierarchy' \
+    )
+    _describe -t commands 'bok help node commands' commands "$@"
+}
+(( $+functions[_bok__help__node__add_commands] )) ||
+_bok__help__node__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help node add commands' commands "$@"
+}
+(( $+functions[_bok__help__node__ls_commands] )) ||
+_bok__help__node__ls_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help node ls commands' commands "$@"
+}
+(( $+functions[_bok__help__node__rm_commands] )) ||
+_bok__help__node__rm_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help node rm commands' commands "$@"
+}
+(( $+functions[_bok__help__vis_commands] )) ||
+_bok__help__vis_commands() {
+    local commands; commands=(
+'d3:Generates a d3 json file' \
+'mermaid:Generates a mermaid diagram' \
+    )
+    _describe -t commands 'bok help vis commands' commands "$@"
+}
+(( $+functions[_bok__help__vis__d3_commands] )) ||
+_bok__help__vis__d3_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help vis d3 commands' commands "$@"
+}
+(( $+functions[_bok__help__vis__mermaid_commands] )) ||
+_bok__help__vis__mermaid_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok help vis mermaid commands' commands "$@"
+}
+(( $+functions[_bok__import_commands] )) ||
+_bok__import_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok import commands' commands "$@"
+}
+(( $+functions[_bok__init_commands] )) ||
+_bok__init_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok init commands' commands "$@"
+}
+(( $+functions[_bok__lineedit_commands] )) ||
+_bok__lineedit_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok lineedit commands' commands "$@"
+}
+(( $+functions[_bok__node_commands] )) ||
+_bok__node_commands() {
+    local commands; commands=(
+'add:Adds a new node' \
+'rm:Removes a node' \
+'ls:Lists the node hierarchy' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok node commands' commands "$@"
+}
+(( $+functions[_bok__node__add_commands] )) ||
+_bok__node__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node add commands' commands "$@"
+}
+(( $+functions[_bok__node__help_commands] )) ||
+_bok__node__help_commands() {
+    local commands; commands=(
+'add:Adds a new node' \
+'rm:Removes a node' \
+'ls:Lists the node hierarchy' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok node help commands' commands "$@"
+}
+(( $+functions[_bok__node__help__add_commands] )) ||
+_bok__node__help__add_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node help add commands' commands "$@"
+}
+(( $+functions[_bok__node__help__help_commands] )) ||
+_bok__node__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node help help commands' commands "$@"
+}
+(( $+functions[_bok__node__help__ls_commands] )) ||
+_bok__node__help__ls_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node help ls commands' commands "$@"
+}
+(( $+functions[_bok__node__help__rm_commands] )) ||
+_bok__node__help__rm_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node help rm commands' commands "$@"
+}
+(( $+functions[_bok__node__ls_commands] )) ||
+_bok__node__ls_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node ls commands' commands "$@"
+}
+(( $+functions[_bok__node__rm_commands] )) ||
+_bok__node__rm_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok node rm commands' commands "$@"
+}
+(( $+functions[_bok__vis_commands] )) ||
+_bok__vis_commands() {
+    local commands; commands=(
+'d3:Generates a d3 json file' \
+'mermaid:Generates a mermaid diagram' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok vis commands' commands "$@"
+}
+(( $+functions[_bok__vis__d3_commands] )) ||
+_bok__vis__d3_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok vis d3 commands' commands "$@"
+}
+(( $+functions[_bok__vis__help_commands] )) ||
+_bok__vis__help_commands() {
+    local commands; commands=(
+'d3:Generates a d3 json file' \
+'mermaid:Generates a mermaid diagram' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
+    _describe -t commands 'bok vis help commands' commands "$@"
+}
+(( $+functions[_bok__vis__help__d3_commands] )) ||
+_bok__vis__help__d3_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok vis help d3 commands' commands "$@"
+}
+(( $+functions[_bok__vis__help__help_commands] )) ||
+_bok__vis__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok vis help help commands' commands "$@"
+}
+(( $+functions[_bok__vis__help__mermaid_commands] )) ||
+_bok__vis__help__mermaid_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok vis help mermaid commands' commands "$@"
+}
+(( $+functions[_bok__vis__mermaid_commands] )) ||
+_bok__vis__mermaid_commands() {
+    local commands; commands=()
+    _describe -t commands 'bok vis mermaid commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_bok" ]; then
+    _bok "$@"
+else
+    compdef _bok bok
+fi

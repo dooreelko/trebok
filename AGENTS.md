@@ -1,0 +1,1 @@
+When a new coding session starts, create a date-time-session.md file under ./spec directory and update it with the session's feature specifications, decisions taken and dismissed. The goal is to keep track of all features and be able to reproduce them based on the session files.
