@@ -38,27 +38,3 @@ compinit
 
 Alternatively, you can move the completion file to one of your `fpath` directories.
 
-### Fish
-
-To enable completion for Fish, move the completion file to `~/.config/fish/completions/`:
-
-```fish
-mkdir -p ~/.config/fish/completions
-cp /home/doo/projects/trebok/bok/completions/bok.fish ~/.config/fish/completions/
-```
-
-### PowerShell
-
-To enable completion for PowerShell, add the following to your PowerShell profile (you can find its path by running `$PROFILE`):
-
-```powershell
-. /home/doo/projects/trebok/bok/completions/_bok.ps1
-```
-
-### Elvish
-
-To enable completion for Elvish, add the following to your `~/.elvish/rc.elv`:
-
-```elvish
-edit:completion:add-path /home/doo/projects/trebok/bok/completions
-```
