@@ -7,8 +7,9 @@ mod commands;
 // It leaks memory, but this function is only called when generating completions,
 // so it's a small, one-time leak.
 fn get_node_hashes_for_clap() -> Vec<&'static str> {
-    let hashes = commands::node::get_all_node_hashes();
-    let leaked: &'static Vec<String> = Box::leak(Box::new(hashes));
+    let nodes = commands::node::get_all_nodes_flat();
+    let formatted_nodes: Vec<String> = nodes.into_iter().map(|(id, blurb)| format!("{}-{}", id, blurb.replace(' ', "-"))).collect();
+    let leaked: &'static Vec<String> = Box::leak(Box::new(formatted_nodes));
     leaked.iter().map(|s| s.as_str()).collect()
 }
 
@@ -79,6 +80,7 @@ enum NodeAction {
     /// Removes a node
     Rm {
         /// The node to remove
+        #[arg(value_parser = PossibleValuesParser::new(get_node_hashes_for_clap()))]
         node: String,
     },
     /// Lists the node hierarchy
@@ -112,9 +114,13 @@ fn main() {
         }
         Commands::Node { action } => match action {
             NodeAction::Add { blurb, under } => {
-                commands::node::add(&blurb.join(" "), under.as_deref())
+                let parsed_under = under.as_ref().map(|s| s.splitn(2, '-').next().unwrap_or("").to_string());
+                commands::node::add(&blurb.join(" "), parsed_under.as_deref())
             }
-            NodeAction::Rm { node } => commands::node::rm(node),
+            NodeAction::Rm { node } => {
+                let parsed_node = node.splitn(2, '-').next().unwrap_or("").to_string();
+                commands::node::rm(&parsed_node)
+            },
             NodeAction::Ls => commands::node::ls(),
         },
         Commands::Vis { format } => match format {

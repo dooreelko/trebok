@@ -5,6 +5,23 @@ use murmur3::murmur3_32;
 use hocon::HoconLoader;
 use glob::glob;
 
+#[derive(Debug)]
+pub struct Node {
+    pub id: String,
+    pub blurb: String,
+    pub children: Vec<Node>,
+}
+
+impl Node {
+    pub fn new(id: String, blurb: String) -> Self {
+        Node {
+            id,
+            blurb,
+            children: Vec::new(),
+        }
+    }
+}
+
 pub fn create_node(blurb: &str, under: Option<&str>) -> Result<u32, String> {
     let mut reader = Cursor::new(blurb.as_bytes());
     let node_id = murmur3_32(&mut reader, 0).unwrap();
@@ -50,27 +67,60 @@ pub fn add(blurb: &str, under: Option<&str>) {
     }
 }
 
-pub fn rm(node: &str) {
-    match fs::remove_dir_all(node) {
-        Ok(_) => println!("Removed node '{}'", node),
-        Err(e) => println!("Error removing node '{}': {}", node, e),
+pub fn rm(node_hash: &str) {
+    let pattern = format!("./{} *", node_hash);
+    let mut node_path_opt = None;
+    for entry in glob(&pattern).expect("Failed to read glob pattern") {
+        if let Ok(p) = entry {
+            if p.is_dir() {
+                node_path_opt = Some(p);
+                break;
+            }
+        }
+    }
+
+    if let Some(node_path) = node_path_opt {
+        match fs::remove_dir_all(&node_path) {
+            Ok(_) => println!("Removed node '{}'", node_path.display()),
+            Err(e) => println!("Error removing node '{}': {}", node_path.display(), e),
+        }
+    } else {
+        println!("Error: Node with hash '{}' not found.", node_hash);
     }
 }
 
-fn ls_recursive(dir: &Path, prefix: &str) {
+fn print_nodes_recursive(nodes: &[Node], prefix: &str) {
+    for node in nodes {
+        println!("{}{}", prefix, node.blurb);
+        print_nodes_recursive(&node.children, &format!("  {}", prefix));
+    }
+}
+
+fn get_nodes_recursive(dir: &Path) -> Vec<Node> {
+    let mut nodes = Vec::new();
     if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.filter_map(Result::ok) {
+        let mut sorted_entries: Vec<_> = entries.filter_map(Result::ok).collect();
+        sorted_entries.sort_by_key(|entry| entry.path());
+
+        for entry in sorted_entries {
             let path = entry.path();
             if path.is_dir() {
                 let meta_path = path.join("meta.hocon");
                 if meta_path.exists() {
                     let node_name = path.file_name().unwrap().to_str().unwrap();
-                    println!("{}{}", prefix, node_name);
-                    ls_recursive(&path, &format!("  {}", prefix));
+                    let parts: Vec<&str> = node_name.splitn(2, ' ').collect();
+                    if parts.len() == 2 {
+                        let id = parts[0].to_string();
+                        let blurb = parts[1].to_string();
+                        let mut node = Node::new(id, blurb);
+                        node.children = get_nodes_recursive(&path);
+                        nodes.push(node);
+                    }
                 }
             }
         }
     }
+    nodes
 }
 
 pub fn ls() {
@@ -81,43 +131,39 @@ pub fn ls() {
         .unwrap();
     let starting_node_id = hocon["book"]["starting_node"].as_string().unwrap();
 
-    let mut root_nodes = Vec::new();
-    let mut starting_node_path_opt = None;
+    let mut all_nodes = get_nodes_recursive(Path::new("."));
 
-    if let Ok(entries) = fs::read_dir(".") {
-        for entry in entries.filter_map(Result::ok) {
-            let path = entry.path();
-            if path.is_dir() {
-                let meta_path = path.join("meta.hocon");
-                if meta_path.exists() {
-                    let node_name = path.file_name().unwrap().to_str().unwrap();
-                    if node_name.starts_with(&starting_node_id) {
-                        starting_node_path_opt = Some(path.clone());
-                    } else {
-                        root_nodes.push(path);
-                    }
-                }
-            }
+    let mut starting_node_index = None;
+    for (i, node) in all_nodes.iter().enumerate() {
+        if node.id == starting_node_id {
+            starting_node_index = Some(i);
+            break;
         }
     }
 
-    if let Some(starting_node_path) = starting_node_path_opt {
-        let node_name = starting_node_path.file_name().unwrap().to_str().unwrap();
-        println!("{}", node_name);
-        ls_recursive(&starting_node_path, "  ");
+    if let Some(index) = starting_node_index {
+        let starting_node = all_nodes.remove(index);
+        println!("{}", starting_node.blurb);
+        print_nodes_recursive(&starting_node.children, "  ");
     } else {
-        println!("Starting node with id {} not found.", starting_node_id);
+        eprintln!("Starting node with id {} not found.", starting_node_id);
     }
 
-    root_nodes.sort();
-    for path in root_nodes {
-        let node_name = path.file_name().unwrap().to_str().unwrap();
-        println!("{}", node_name);
-        ls_recursive(&path, "  ");
+    // Print remaining root nodes
+    for node in all_nodes {
+        println!("{}", node.blurb);
+        print_nodes_recursive(&node.children, "  ");
     }
 }
 
-fn get_all_hashes_recursive(dir: &Path, hashes: &mut Vec<String>) {
+
+pub fn get_all_nodes_flat() -> Vec<(String, String)> {
+    let mut nodes_flat = Vec::new();
+    get_all_nodes_flat_recursive(Path::new("."), &mut nodes_flat);
+    nodes_flat
+}
+
+fn get_all_nodes_flat_recursive(dir: &Path, nodes_flat: &mut Vec<(String, String)>) {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.filter_map(Result::ok) {
             let path = entry.path();
@@ -125,18 +171,15 @@ fn get_all_hashes_recursive(dir: &Path, hashes: &mut Vec<String>) {
                 let meta_path = path.join("meta.hocon");
                 if meta_path.exists() {
                     let node_name = path.file_name().unwrap().to_str().unwrap();
-                    if let Some(hash) = node_name.split_whitespace().next() {
-                        hashes.push(hash.to_string());
-                        get_all_hashes_recursive(&path, hashes);
+                    let parts: Vec<&str> = node_name.splitn(2, ' ').collect();
+                    if parts.len() == 2 {
+                        let id = parts[0].to_string();
+                        let blurb = parts[1].to_string();
+                        nodes_flat.push((id, blurb));
+                        get_all_nodes_flat_recursive(&path, nodes_flat);
                     }
                 }
             }
         }
     }
-}
-
-pub fn get_all_node_hashes() -> Vec<String> {
-    let mut hashes = Vec::new();
-    get_all_hashes_recursive(Path::new("."), &mut hashes);
-    hashes
 }
