@@ -1,4 +1,4 @@
-use clap::{builder::PossibleValuesParser, CommandFactory, Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand, builder::PossibleValuesParser};
 use clap_complete::{generate, shells};
 
 mod commands;
@@ -8,7 +8,10 @@ mod commands;
 // so it's a small, one-time leak.
 fn get_node_hashes_for_clap() -> Vec<&'static str> {
     let nodes = commands::node::get_all_nodes_flat();
-    let formatted_nodes: Vec<String> = nodes.into_iter().map(|(id, blurb)| format!("{}-{}", id, blurb.replace(' ', "-"))).collect();
+    let formatted_nodes: Vec<String> = nodes
+        .into_iter()
+        .map(|(id, blurb)| format!("{}-{}", id, blurb.replace(' ', "-")))
+        .collect();
     let leaked: &'static Vec<String> = Box::leak(Box::new(formatted_nodes));
     leaked.iter().map(|s| s.as_str()).collect()
 }
@@ -114,13 +117,15 @@ fn main() {
         }
         Commands::Node { action } => match action {
             NodeAction::Add { blurb, under } => {
-                let parsed_under = under.as_ref().map(|s| s.splitn(2, '-').next().unwrap_or("").to_string());
+                let parsed_under = under
+                    .as_ref()
+                    .map(|s| s.splitn(2, '-').next().unwrap_or("").to_string());
                 commands::node::add(&blurb.join(" "), parsed_under.as_deref())
             }
             NodeAction::Rm { node } => {
                 let parsed_node = node.splitn(2, '-').next().unwrap_or("").to_string();
                 commands::node::rm(&parsed_node)
-            },
+            }
             NodeAction::Ls => commands::node::ls(),
         },
         Commands::Vis { format } => match format {
@@ -135,13 +140,7 @@ fn main() {
         Commands::Check => commands::check::run(),
         Commands::Import { file } => commands::import::run(file),
         Commands::Completion { shell } => {
-            generate(
-                *shell,
-                &mut Cli::command(),
-                "bok",
-                &mut std::io::stdout(),
-            );
+            generate(*shell, &mut Cli::command(), "bok", &mut std::io::stdout());
         }
     }
 }
-

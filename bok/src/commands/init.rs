@@ -1,5 +1,5 @@
-use std::fs;
 use super::node;
+use std::fs;
 
 pub fn run(blurb: Option<&str>) {
     let starting_node_title = blurb.unwrap_or("Starting Node");

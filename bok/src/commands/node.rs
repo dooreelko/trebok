@@ -1,9 +1,9 @@
+use glob::glob;
+use hocon::HoconLoader;
+use murmur3::murmur3_32;
 use std::fs;
 use std::io::Cursor;
 use std::path::Path;
-use murmur3::murmur3_32;
-use hocon::HoconLoader;
-use glob::glob;
 
 #[derive(Debug)]
 pub struct Node {
@@ -56,7 +56,7 @@ pub fn create_node(blurb: &str, under: Option<&str>) -> Result<u32, String> {
     let meta_file_path = path.join("meta.hocon");
     let meta_content = format!(r#"title: "{}""#, blurb);
     fs::write(meta_file_path, meta_content).unwrap();
-    
+
     Ok(node_id)
 }
 
@@ -155,7 +155,6 @@ pub fn ls() {
         print_nodes_recursive(&node.children, "  ");
     }
 }
-
 
 pub fn get_all_nodes_flat() -> Vec<(String, String)> {
     let mut nodes_flat = Vec::new();
