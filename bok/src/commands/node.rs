@@ -22,7 +22,7 @@ impl Node {
     }
 }
 
-pub fn create_node(blurb: &str, under: Option<&str>) -> Result<u32, String> {
+pub fn create_node(blurb: &str, under: Option<&str>, after: Option<&str>) -> Result<u32, String> {
     let mut reader = Cursor::new(blurb.as_bytes());
     let node_id = murmur3_32(&mut reader, 0).unwrap();
     let node_dir_name = format!("{} {}", node_id, blurb);
@@ -50,18 +50,20 @@ pub fn create_node(blurb: &str, under: Option<&str>) -> Result<u32, String> {
     fs::create_dir_all(&path).unwrap();
 
     let text_file_path = path.join("text.qmd");
-    let qmd_content = format!("# {}", blurb);
-    fs::write(text_file_path, qmd_content).unwrap();
+    fs::write(text_file_path, blurb).unwrap();
 
     let meta_file_path = path.join("meta.hocon");
-    let meta_content = format!(r#"title: "{}""#, blurb);
+    let mut meta_content = format!(r#"title: "{}""#, blurb);
+    if let Some(after_node_id) = after {
+        meta_content.push_str(&format!(r#"\nafter: "{}""#, after_node_id));
+    }
     fs::write(meta_file_path, meta_content).unwrap();
 
     Ok(node_id)
 }
 
 pub fn add(blurb: &str, under: Option<&str>) {
-    match create_node(blurb, under) {
+    match create_node(blurb, under, None) {
         Ok(_) => println!("Created new node directory, text.qmd and meta.hocon."),
         Err(e) => eprintln!("Error: {}", e),
     }
@@ -153,6 +155,32 @@ pub fn ls() {
     for node in all_nodes {
         println!("{}", node.blurb);
         print_nodes_recursive(&node.children, "  ");
+    }
+}
+
+pub fn get_node_content(node_hash: &str) -> Result<String, String> {
+    let pattern = format!("./{} *", node_hash);
+    let mut node_path_opt = None;
+    for entry in glob(&pattern).expect("Failed to read glob pattern") {
+        if let Ok(p) = entry {
+            if p.is_dir() {
+                node_path_opt = Some(p);
+                break;
+            }
+        }
+    }
+
+    if let Some(node_path) = node_path_opt {
+        let text_file_path = node_path.join("text.qmd");
+        match fs::read_to_string(&text_file_path) {
+            Ok(content) => Ok(content),
+            Err(e) => Err(format!(
+                "Error reading text.qmd for node '{}': {}",
+                node_hash, e
+            )),
+        }
+    } else {
+        Err(format!("Node with hash '{}' not found.", node_hash))
     }
 }
 

@@ -2,6 +2,8 @@ use clap::{CommandFactory, Parser, Subcommand, builder::PossibleValuesParser};
 use clap_complete::{generate, shells};
 
 mod commands;
+mod config;
+mod llm;
 
 // HACK: This is a workaround for clap's dynamic completions.
 // It leaks memory, but this function is only called when generating completions,
@@ -62,6 +64,9 @@ enum Commands {
     Import {
         /// The qmd file to import
         file: String,
+        /// The parent node hash under which to create the new nodes
+        #[arg(long, value_parser = PossibleValuesParser::new(get_node_hashes_for_clap()))]
+        under: Option<String>,
     },
     /// Generate shell completions
     Completion {
@@ -138,7 +143,15 @@ fn main() {
         Commands::Lineedit { node } => commands::lineedit::run(node),
         Commands::Copyedit { node } => commands::copyedit::run(node),
         Commands::Check => commands::check::run(),
-        Commands::Import { file } => commands::import::run(file),
+        Commands::Import { file, under } => {
+            let parsed_under = under
+                .as_ref()
+                .map(|s| s.splitn(2, '-').next().unwrap_or("").to_string());
+            if let Err(e) = commands::import::run(file, parsed_under.as_deref()) {
+                eprintln!("Error importing file: {}", e);
+                std::process::exit(1);
+            }
+        }
         Commands::Completion { shell } => {
             generate(*shell, &mut Cli::command(), "bok", &mut std::io::stdout());
         }
