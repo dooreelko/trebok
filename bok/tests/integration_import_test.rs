@@ -5,7 +5,7 @@ use std::process::Command;
 use std::fs;
 
 #[test]
-fn test_import_command_with_dummy_provider() -> Result<(), Box<dyn std::error::Error>> {
+fn test_import_command_with_ollama_provider() -> Result<(), Box<dyn std::error::Error>> {
     // Setup: Create a dummy markdown file
     let test_file_name = "test_import_file.md";
     let test_file_content = "This is the first part.\n\nThis is the second part.\n\n# Heading for third part.";

@@ -15,27 +15,37 @@ the LLM service should be provided by an abstraction module that can work with d
     -   Implemented node creation for each dissected part, linking them with the `after` metadata.
     -   Added validation to reconstruct the document from created nodes and compare it with the original.
 -   **LLM Abstraction:**
-    -   Created `bok/src/llm.rs` with `LlmProvider` trait and `DummyLlmProvider` implementation.
+    -   Modified `LlmProvider` trait in `bok/src/llm.rs` to return `Result<Vec<(String, String)>>` for `dissect_markdown`.
+    -   Updated `DummyLlmProvider` in `bok/src/llm.rs` to return `(blurb, content)` tuples.
+    -   Updated `OllamaProvider` in `bok/src/llm_providers/ollama.rs` to return `(blurb, content)` tuples and adjusted the system prompt accordingly.
     -   Added `get_llm_provider` function to `bok/src/llm.rs` to return the appropriate LLM provider based on configuration.
     -   Integrated `anyhow` for error handling.
+    -   Implemented `OllamaProvider` to interact with a local Ollama service using `reqwest` and the chat endpoint.
+    -   Added `tokio` and `reqwest` in `bok/Cargo.toml` for asynchronous HTTP requests.
+    -   Moved Ollama-specific logic to `bok/src/llm_providers/ollama.rs` for better organization.
+    -   Created `bok/src/llm_providers/mod.rs` to declare the `ollama` module.
+    -   **Attempted to integrate `ollama-rs` crate and the `generate` endpoint, but encountered persistent issues with stream consumption in a blocking context. Decided to revert to the working `reqwest` implementation for stability.**
 -   **Configuration:**
     -   Created `bok/bok.conf` as a placeholder for LLM configuration.
     -   Added `config` and `anyhow` crates to `bok/Cargo.toml`.
     -   Created `bok/src/config.rs` to handle loading and managing application configuration, including LLM settings.
     -   Updated `bok/src/config.rs` to use the `hocon` crate directly for parsing `bok.conf` as per user's instruction.
+    -   Changed default Ollama model to `qwen3:8b` in `bok/bok.conf` and `bok/src/config.rs`.
 -   **Node Creation and Metadata:**
-    -   Modified `bok/src/commands/node.rs` to accept an `after` argument in `create_node` to store the preceding node's ID.
+    -   Modified `bok/src/commands/node.rs` to accept `blurb` and `content` as separate arguments in `create_node`.
+    -   Updated `bok/src/commands/node.rs` (`add` function) and `bok/src/commands/init.rs` to pass appropriate arguments to `create_node`.
     -   Added `get_node_content` to `bok/src/commands/node.rs` to retrieve the content of a node's `text.qmd` file for validation.
     -   Updated `bok/src/commands/init.rs` to use the `hocon` crate for validating the `book.conf` content before writing it.
     -   Confirmed that node's meta file is already named `meta.hocon` in `bok/src/commands/node.rs`.
 -   **Validation:**
     -   Implemented logic in `bok/src/commands/import.rs` to reconstruct the document from created nodes and compare it with the original input.
 -   **Integration Test:**
-    -   Created `bok/tests/integration_import_test.rs` to test the `import` command with the `DummyLlmProvider`.
+    -   Created `bok/tests/integration_import_test.rs` to test the `import` command.
+    -   Renamed the test to `test_import_command_with_ollama_provider` to reflect its actual functionality.
     -   Added `assert_cmd` and `predicates` as dev-dependencies to `bok/Cargo.toml`.
-    -   The test successfully verifies the import process, node creation, and content validation.
+    -   The test successfully verifies the import process, node creation, and content validation using the `OllamaProvider`.
 
 **Next Steps:**
--   Implement actual LLM providers (Ollama, Anthropic, OpenAI) instead of `DummyLlmProvider`.
+-   Implement Anthropic and OpenAI providers.
 -   Refine the dissection logic to handle different markdown elements (paragraphs, lists, code snippets, etc.) more accurately.
 -   Improve error handling and user feedback.

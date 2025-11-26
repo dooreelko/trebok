@@ -22,7 +22,7 @@ impl Node {
     }
 }
 
-pub fn create_node(blurb: &str, under: Option<&str>, after: Option<&str>) -> Result<u32, String> {
+pub fn create_node(blurb: &str, content: &str, under: Option<&str>, after: Option<&str>) -> Result<u32, String> {
     let mut reader = Cursor::new(blurb.as_bytes());
     let node_id = murmur3_32(&mut reader, 0).unwrap();
     let node_dir_name = format!("{} {}", node_id, blurb);
@@ -41,7 +41,8 @@ pub fn create_node(blurb: &str, under: Option<&str>, after: Option<&str>) -> Res
         }
         if let Some(parent_path) = parent_path_opt {
             path.push(parent_path);
-        } else {
+        }
+        else {
             return Err(format!("Parent node with hash {} not found.", under_hash));
         }
     }
@@ -50,7 +51,7 @@ pub fn create_node(blurb: &str, under: Option<&str>, after: Option<&str>) -> Res
     fs::create_dir_all(&path).unwrap();
 
     let text_file_path = path.join("text.qmd");
-    fs::write(text_file_path, blurb).unwrap();
+    fs::write(text_file_path, content).unwrap();
 
     let meta_file_path = path.join("meta.hocon");
     let mut meta_content = format!(r#"title: "{}""#, blurb);
@@ -63,7 +64,7 @@ pub fn create_node(blurb: &str, under: Option<&str>, after: Option<&str>) -> Res
 }
 
 pub fn add(blurb: &str, under: Option<&str>) {
-    match create_node(blurb, under, None) {
+    match create_node(blurb, blurb, under, None) {
         Ok(_) => println!("Created new node directory, text.qmd and meta.hocon."),
         Err(e) => eprintln!("Error: {}", e),
     }

@@ -24,10 +24,11 @@ pub fn run(file: &str, under: Option<&str>) -> Result<()> {
     let mut last_node_id: Option<String> = None;
     let mut created_node_ids: Vec<String> = Vec::new();
 
-    for (i, part) in parts.iter().enumerate() {
-        println!("Creating node for part {}: {}", i + 1, part);
+    for (i, (blurb, content)) in parts.iter().enumerate() {
+        println!("Creating node for part {}: {}", i + 1, blurb);
         let new_node_id = node::create_node(
-            part,
+            blurb,
+            content,
             initial_under_node_id.as_deref(),
             last_node_id.as_deref(),
         )
@@ -62,8 +63,8 @@ pub fn run(file: &str, under: Option<&str>) -> Result<()> {
     } else {
         eprintln!("Validation failed: Reconstructed content does NOT match original.");
         // For debugging, you might want to print diffs here
-        // eprintln!("Original:\n{}");
-        // eprintln!("Reconstructed:\n{}");
+        // eprintln!("Original:\n{}", original_content);
+        // eprintln!("Reconstructed:\n{}", reconstructed_content);
     }
 
     Ok(())

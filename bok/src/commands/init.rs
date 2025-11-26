@@ -4,7 +4,7 @@ use hocon::HoconLoader;
 
 pub fn run(blurb: Option<&str>) {
     let starting_node_title = blurb.unwrap_or("Starting Node");
-    let starting_node_id = node::create_node(starting_node_title, None, None).unwrap();
+    let starting_node_id = node::create_node(starting_node_title, starting_node_title, None, None).unwrap();
 
     let hocon_content_string = format!(
         r#"

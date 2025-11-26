@@ -26,7 +26,7 @@ impl Settings {
             return Ok(Settings {
                 llm: LlmSettings {
                     provider: "ollama".to_string(),
-                    model: "qwen3:14b".to_string(),
+                    model: "qwen3:8b".to_string(),
                     location: Some("http://localhost:11434".to_string()),
                 },
             });

@@ -1,18 +1,21 @@
 use crate::config::LlmSettings;
 use anyhow::{Result, anyhow};
+use crate::llm_providers::ollama::OllamaProvider;
 
 pub trait LlmProvider {
-    fn dissect_markdown(&self, markdown_content: &str) -> Result<Vec<String>>;
+    fn dissect_markdown(&self, markdown_content: &str) -> Result<Vec<(String, String)>>;
 }
 
 pub struct DummyLlmProvider;
 
 impl LlmProvider for DummyLlmProvider {
-    fn dissect_markdown(&self, markdown_content: &str) -> Result<Vec<String>> {
-        // For now, just split by double newline as a dummy implementation
+    fn dissect_markdown(&self, markdown_content: &str) -> Result<Vec<(String, String)>> {
         Ok(markdown_content
             .split("\n\n")
-            .map(|s| s.to_string())
+            .map(|s| {
+                let blurb = s.chars().take(50).collect::<String>();
+                (blurb, s.to_string())
+            })
             .collect())
     }
 }
@@ -20,9 +23,8 @@ impl LlmProvider for DummyLlmProvider {
 pub fn get_llm_provider(settings: &LlmSettings) -> Result<Box<dyn LlmProvider>> {
     match settings.provider.as_str() {
         "ollama" => {
-            // TODO: Implement OllamaProvider
-            println!("Using Ollama provider (dummy implementation)");
-            Ok(Box::new(DummyLlmProvider))
+            println!("Using Ollama provider.");
+            Ok(Box::new(OllamaProvider::new(settings.clone())))
         }
         "anthropic" => {
             // TODO: Implement AnthropicProvider
