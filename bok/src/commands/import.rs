@@ -1,6 +1,6 @@
 use crate::commands::node;
 use crate::config::Settings;
-use crate::llm::{get_llm_provider};
+use crate::llm::get_llm_provider;
 use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::Path;
@@ -18,31 +18,36 @@ pub fn run(file: &str, under: Option<&str>) -> Result<()> {
     let settings = Settings::new()?;
     let llm_provider = get_llm_provider(&settings.llm)?;
 
-    let parts = llm_provider.dissect_markdown(&original_content)?;
+    let parts_iterator = llm_provider.dissect_markdown(&original_content)?;
 
     let initial_under_node_id = under.map(|s| s.to_string());
     let mut last_node_id: Option<String> = None;
     let mut created_node_ids: Vec<String> = Vec::new();
+    let mut count = 0;
 
-    for (i, (blurb, content)) in parts.iter().enumerate() {
-        println!("Creating node for part {}: {}", i + 1, blurb);
-        let new_node_id = node::create_node(
-            blurb,
-            content,
-            initial_under_node_id.as_deref(),
-            last_node_id.as_deref(),
-        )
-        .map_err(|e| anyhow!("Failed to create node: {}", e))?;
+    for part_result in parts_iterator {
+        match part_result {
+            Ok((blurb, content)) => {
+                count += 1;
+                println!("Creating node for part {}: {}", count, blurb);
+                let new_node_id = node::create_node(
+                    &blurb,
+                    &content,
+                    initial_under_node_id.as_deref(),
+                    last_node_id.as_deref(),
+                )
+                .map_err(|e| anyhow!("Failed to create node: {}", e))?;
 
-        last_node_id = Some(new_node_id.to_string());
-        created_node_ids.push(new_node_id.to_string());
+                last_node_id = Some(new_node_id.to_string());
+                created_node_ids.push(new_node_id.to_string());
+            }
+            Err(e) => {
+                eprintln!("Error processing part: {}", e);
+            }
+        }
     }
 
-    println!(
-        "Successfully imported {} parts from '{}'.",
-        parts.len(),
-        file
-    );
+    println!("Successfully imported {} parts from '{}'.", count, file);
 
     // Validation step
     let mut reconstructed_content = String::new();
@@ -63,8 +68,8 @@ pub fn run(file: &str, under: Option<&str>) -> Result<()> {
     } else {
         eprintln!("Validation failed: Reconstructed content does NOT match original.");
         // For debugging, you might want to print diffs here
-        // eprintln!("Original:\n{}", original_content);
-        // eprintln!("Reconstructed:\n{}", reconstructed_content);
+        // eprintln!("Original:\n{}");
+        // eprintln!("Reconstructed:\n{}");
     }
 
     Ok(())

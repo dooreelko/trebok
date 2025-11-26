@@ -1,11 +1,8 @@
 == BOK ==
 
-Here's the idea. I'm not thinking in a linear manner and (hypothesis) 
-I think this hinders my attempts to write my book.
+Here's the idea. I'm not thinking in a linear manner and (hypothesis) I think this hinders my attempts to write my book. The idea is to collect the somewhat random graph of thoughts and generate a linear book from that using relationships between the nodes of the graph.
 
-The idea is to create a recursive mind-map-like graph system, where each node 
-represents and idea or a concept and can have its own sub-graph of concepts 
-that will elaborate the parent concept further.
+For that we can create a recursive mind-map-like graph system, where each node  represents and idea or a concept and can have its own sub-graph of concepts that will elaborate the parent concept further.
 
 Each node will have some markdown text (qmd) associated with it and will have 
 a metadata file (as a hocon document) describing its relationships (parent, non-hierarchical relations) and 
