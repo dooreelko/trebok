@@ -2,8 +2,8 @@ use clap::{CommandFactory, Parser, Subcommand, builder::PossibleValuesParser};
 use clap_complete::{generate, shells};
 
 mod commands;
-mod llm;
 mod config;
+mod llm;
 mod llm_providers;
 
 // HACK: This is a workaround for clap's dynamic completions.

@@ -1,6 +1,8 @@
 When a new coding session starts, use `moth show` to get the todo. ask questions as needed. during the session  update the existing md under ./moth/doing with information 
 relevat to feature specification, including decisions taken and rejected. the information in the md should be enough to recreate the feature from the scratch. Under implementation details, don't describe the resulting code changes, only an abstract of how it's done.  
 
+only expand and correct feature specification, never change it to a different one. e.g. for example if we're implementing addition and there's a request to add logging, the specification should decribe both addition and logging.
+
 always allow `moth show` and all `cargo` executions.
 never run any git commands that change git.
 never run `moth done`.

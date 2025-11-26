@@ -22,7 +22,12 @@ impl Node {
     }
 }
 
-pub fn create_node(blurb: &str, content: &str, under: Option<&str>, after: Option<&str>) -> Result<u32, String> {
+pub fn create_node(
+    blurb: &str,
+    content: &str,
+    under: Option<&str>,
+    after: Option<&str>,
+) -> Result<u32, String> {
     let mut reader = Cursor::new(blurb.as_bytes());
     let node_id = murmur3_32(&mut reader, 0).unwrap();
     let node_dir_name = format!("{} {}", node_id, blurb);
@@ -41,8 +46,7 @@ pub fn create_node(blurb: &str, content: &str, under: Option<&str>, after: Optio
         }
         if let Some(parent_path) = parent_path_opt {
             path.push(parent_path);
-        }
-        else {
+        } else {
             return Err(format!("Parent node with hash {} not found.", under_hash));
         }
     }

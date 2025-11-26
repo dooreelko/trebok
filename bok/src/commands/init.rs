@@ -1,18 +1,17 @@
 use super::node;
-use std::fs;
 use hocon::HoconLoader;
+use std::fs;
 
 pub fn run(blurb: Option<&str>) {
     let starting_node_title = blurb.unwrap_or("Starting Node");
-    let starting_node_id = node::create_node(starting_node_title, starting_node_title, None, None).unwrap();
+    let starting_node_id =
+        node::create_node(starting_node_title, starting_node_title, None, None).unwrap();
 
     let hocon_content_string = format!(
         r#"
-        book {{
-            title = "My New Book"
-            author = "Unknown Author"
-            starting_node = "{}"
-        }}
+title = "My New Book"
+author = "Unknown Author"
+starting_node = "{}"
         "#,
         starting_node_id
     );
@@ -24,6 +23,6 @@ pub fn run(blurb: Option<&str>) {
         .hocon()
         .unwrap();
 
-    fs::write("book.conf", hocon_content_string).unwrap();
-    println!("Created book.conf and starting node directory.");
+    fs::write("bok.hocon", hocon_content_string).unwrap();
+    println!("Created bok.hocon and starting node directory.");
 }
