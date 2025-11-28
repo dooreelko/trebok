@@ -110,7 +110,8 @@ enum GenerateFormat {
     Quarto,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
@@ -148,7 +149,7 @@ fn main() {
             let parsed_under = under
                 .as_ref()
                 .map(|s| s.splitn(2, '-').next().unwrap_or("").to_string());
-            if let Err(e) = commands::import::run(file, parsed_under.as_deref()) {
+            if let Err(e) = commands::import::run(file, parsed_under.as_deref()).await {
                 eprintln!("Error importing file: {}", e);
                 std::process::exit(1);
             }

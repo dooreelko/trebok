@@ -1,26 +1,32 @@
 use crate::config::LlmSettings;
 use crate::llm_providers::ollama::OllamaProvider;
 use anyhow::{Result, anyhow};
+use async_trait::async_trait;
+use futures::stream::Stream;
+use std::pin::Pin;
 
+#[async_trait]
 pub trait LlmProvider {
-    fn dissect_markdown<'a>(
+    async fn dissect_markdown<'a>(
         &'a self,
         markdown_content: &'a str,
-    ) -> Result<Box<dyn Iterator<Item = Result<(String, String)>> + 'a>>;
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<(String, String)>> + Send + 'a>>>;
 }
 
 pub struct DummyLlmProvider;
 
+#[async_trait]
 impl LlmProvider for DummyLlmProvider {
-    fn dissect_markdown<'a>(
+    async fn dissect_markdown<'a>(
         &'a self,
         markdown_content: &'a str,
-    ) -> Result<Box<dyn Iterator<Item = Result<(String, String)>> + 'a>> {
+    ) -> Result<Pin<Box<dyn Stream<Item = Result<(String, String)>> + Send + 'a>>> {
         let iterator = markdown_content.split("\n\n").map(|s| {
             let blurb = s.chars().take(50).collect::<String>();
             Ok((blurb, s.to_string()))
         });
-        Ok(Box::new(iterator))
+        let stream = futures::stream::iter(iterator);
+        Ok(Box::pin(stream))
     }
 }
 

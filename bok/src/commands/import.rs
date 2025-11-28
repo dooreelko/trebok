@@ -2,10 +2,11 @@ use crate::commands::node;
 use crate::config::Settings;
 use crate::llm::get_llm_provider;
 use anyhow::{Result, anyhow};
+use futures::StreamExt;
 use std::fs;
 use std::path::Path;
 
-pub fn run(file: &str, under: Option<&str>) -> Result<()> {
+pub async fn run(file: &str, under: Option<&str>) -> Result<()> {
     let file_path = Path::new(file);
 
     if !file_path.exists() {
@@ -18,14 +19,14 @@ pub fn run(file: &str, under: Option<&str>) -> Result<()> {
     let settings = Settings::new()?;
     let llm_provider = get_llm_provider(&settings.llm)?;
 
-    let parts_iterator = llm_provider.dissect_markdown(&original_content)?;
+    let mut parts_stream = llm_provider.dissect_markdown(&original_content).await?;
 
     let initial_under_node_id = under.map(|s| s.to_string());
     let mut last_node_id: Option<String> = None;
     let mut created_node_ids: Vec<String> = Vec::new();
     let mut count = 0;
 
-    for part_result in parts_iterator {
+    while let Some(part_result) = parts_stream.next().await {
         match part_result {
             Ok((blurb, content)) => {
                 count += 1;
