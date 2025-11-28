@@ -60,7 +60,8 @@ pub fn create_node(
     let meta_file_path = path.join("meta.hocon");
     let mut meta_content = format!(r#"title: "{}""#, blurb);
     if let Some(after_node_id) = after {
-        meta_content.push_str(&format!(r#"\nafter: "{}""#, after_node_id));
+        meta_content.push_str("\n");
+        meta_content.push_str(&format!(r#"after: "{}""#, after_node_id));
     }
     fs::write(meta_file_path, meta_content).unwrap();
 
@@ -132,11 +133,11 @@ fn get_nodes_recursive(dir: &Path) -> Vec<Node> {
 
 pub fn ls() {
     let hocon = HoconLoader::new()
-        .load_file("book.conf")
-        .expect("Unable to load book.conf")
+        .load_file("bok.hocon")
+        .expect("Unable to load bok.hocon")
         .hocon()
         .unwrap();
-    let starting_node_id = hocon["book"]["starting_node"].as_string().unwrap();
+    let starting_node_id = hocon["starting_node"].as_string().unwrap();
 
     let mut all_nodes = get_nodes_recursive(Path::new("."));
 
