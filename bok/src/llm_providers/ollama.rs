@@ -1,15 +1,22 @@
-use crate::config::LlmSettings;
-use crate::llm::LlmProvider;
-use anyhow::Result;
+use std::io;
+use std::pin::Pin;
+
+use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use futures::stream::{self, Stream, StreamExt};
+use bytes::Bytes;
+use futures::TryStreamExt;
+use futures::stream::Stream;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::pin::Pin;
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio_util::io::StreamReader;
+
+use crate::config::LlmSettings;
+use crate::llm::{AsyncIterator, LlmProvider};
 
 #[derive(Debug)]
 pub struct OllamaProvider {
-    settings: LlmSettings,
+    pub settings: LlmSettings,
 }
 
 impl OllamaProvider {
@@ -27,47 +34,97 @@ struct ChatRequest<'a> {
 }
 
 #[derive(Debug, Deserialize)]
-struct ChatResponse {
-    message: Option<MessageResponse>,
-    done: bool,
-    #[serde(default)]
-    done_reason: Option<String>,
-    #[serde(default)]
-    total_duration: Option<u64>,
-    #[serde(default)]
-    load_duration: Option<u64>,
-    #[serde(default)]
-    prompt_eval_count: Option<u32>,
-    #[serde(default)]
-    prompt_eval_duration: Option<u64>,
-    #[serde(default)]
-    eval_count: Option<u32>,
-    #[serde(default)]
-    eval_duration: Option<u64>,
-}
-
-#[derive(Debug, Deserialize)]
-struct MessageResponse {
-    role: String,
-    content: String,
-}
-
-#[derive(Debug, Deserialize)]
 struct GenerateResponse {
     #[serde(default)]
     response: Option<String>,
-    #[serde(default)]
-    done: bool,
-    #[serde(default)]
-    thinking: Option<String>,
+}
+
+pub struct OllamaStream<S>
+where
+    S: Stream<Item = Result<Bytes, io::Error>> + Unpin + Send,
+{
+    reader: BufReader<StreamReader<S, Bytes>>,
+    buffer: String,
+}
+
+#[async_trait]
+impl<S> AsyncIterator for OllamaStream<S>
+where
+    S: Stream<Item = Result<Bytes, io::Error>> + Unpin + Send,
+{
+    type Item = Result<(String, String)>;
+
+    async fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            // Read next line from the stream (each line is a GenerateResponse JSON)
+            let mut line = String::new();
+            match self.reader.read_line(&mut line).await {
+                Ok(0) => {
+                    // End of stream
+                    return None;
+                }
+                Ok(_) => {
+                    // Parse the line as GenerateResponse
+                    match serde_json::from_str::<GenerateResponse>(&line) {
+                        Ok(gen_response) => {
+                            if let Some(response_text) = gen_response.response {
+                                self.buffer.push_str(&response_text);
+
+                                // Check if this response contains a newline
+                                if response_text.contains('\n') || response_text.contains('\r') {
+                                    // We have a complete line, parse it
+                                    if let Some(newline_pos) = self.buffer.find('\n') {
+                                        let complete_line = self.buffer[..newline_pos]
+                                            .trim_end_matches('\r')
+                                            .to_string();
+                                        self.buffer.drain(..=newline_pos);
+
+                                        // Parse as JSON array ["blurb", "content"]
+                                        match serde_json::from_str::<Vec<String>>(&complete_line) {
+                                            Ok(parts) if parts.len() == 2 => {
+                                                return Some(Ok((
+                                                    parts[0].clone(),
+                                                    parts[1].clone(),
+                                                )));
+                                            }
+                                            Ok(_) => {
+                                                return Some(Err(anyhow!(
+                                                    "Expected JSON array with 2 elements"
+                                                )));
+                                            }
+                                            Err(e) => {
+                                                return Some(Err(anyhow!(
+                                                    "Failed to parse JSON array: {}",
+                                                    e
+                                                )));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // Continue reading more responses
+                        }
+                        Err(e) => {
+                            return Some(Err(anyhow!("Failed to parse GenerateResponse: {}", e)));
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Some(Err(anyhow!("IO error reading stream: {}", e)));
+                }
+            }
+        }
+    }
 }
 
 #[async_trait]
 impl LlmProvider for OllamaProvider {
+    type Iterator<'a> = OllamaStream<Pin<Box<dyn Stream<Item = Result<Bytes, io::Error>> + Send>>>;
+
     async fn dissect_markdown<'a>(
         &'a self,
         markdown_content: &'a str,
-    ) -> Result<Pin<Box<dyn Stream<Item = Result<(String, String)>> + Send + 'a>>> {
+    ) -> Result<Self::Iterator<'a>> {
         let ollama_url = self
             .settings
             .location
@@ -84,161 +141,32 @@ impl LlmProvider for OllamaProvider {
         let model_name: &str = self.settings.model.as_str();
         let prompt = format!("{} {}", system_prompt, user_prompt);
         eprintln!("Using {}", model_name);
-        let request_body = ChatRequest {
+        let request_body = serde_json::to_string(&ChatRequest {
             model: model_name,
             stream: true,
             think: false,
-            prompt: prompt.as_str(),
-        };
+            prompt: &prompt,
+        })?;
 
         let res = client
             .post(&full_url)
-            .json(&request_body)
+            .header("Content-Type", "application/json")
+            .body(request_body)
             .send()
             .await?
             .error_for_status()?;
 
-        let byte_stream = res.bytes_stream();
+        let byte_stream = res
+            .bytes_stream()
+            .map_err(|e| io::Error::new(io::ErrorKind::Other, e));
+        let stream_reader =
+            StreamReader::new(Box::pin(byte_stream)
+                as Pin<Box<dyn Stream<Item = Result<Bytes, io::Error>> + Send>>);
+        let reader = BufReader::new(stream_reader);
 
-        let stream = stream::unfold(
-            (byte_stream, String::new()),
-            async move |(mut byte_stream, mut buffer)| {
-                loop {
-                    let chunk_result = byte_stream.next().await;
-                    let chunk = match chunk_result {
-                        Some(Ok(c)) => c,
-                        Some(Err(e)) => {
-                            return Some((Err(anyhow::Error::new(e)), (byte_stream, buffer)));
-                        }
-                        None => {
-                            // If the stream ended, process any remaining content in the buffer
-                            if !buffer.is_empty() {
-                                let line = buffer.trim().to_string();
-                                buffer.clear(); // Clear buffer after processing
-                                if line.is_empty() {
-                                    return None;
-                                }
-                                let parsed_response: serde_json::Value =
-                                    match serde_json::from_str(&line) {
-                                        Ok(res) => res,
-                                        Err(e) => {
-                                            return Some((
-                                                Err(anyhow::Error::new(e)),
-                                                (byte_stream, buffer),
-                                            ));
-                                        }
-                                    };
-                                if let Some(arr) = parsed_response.as_array() {
-                                    if arr.len() == 2 {
-                                        if let (Some(blurb), Some(content)) =
-                                            (arr[0].as_str(), arr[1].as_str())
-                                        {
-                                            return Some((
-                                                Ok((blurb.to_string(), content.to_string())),
-                                                (byte_stream, buffer),
-                                            ));
-                                        }
-                                    }
-                                }
-                            }
-                            return None; // Stream ended and buffer processed
-                        }
-                    };
-
-                    let generate_response: GenerateResponse =
-                        match serde_json::from_str(&String::from_utf8_lossy(&chunk)) {
-                            Ok(res) => res,
-                            Err(e) => {
-                                return Some((Err(anyhow::Error::new(e)), (byte_stream, buffer)));
-                            }
-                        };
-
-                    if let Some(res) = generate_response.response {
-                        buffer.push_str(&res);
-
-                        let mut lines_to_process = Vec::new();
-                        let mut new_buffer = String::new();
-
-                        let mut split = buffer.split('\n').peekable();
-                        while let Some(line) = split.next() {
-                            if split.peek().is_some() {
-                                // It's a complete line
-                                lines_to_process.push(line.to_string());
-                            } else {
-                                // It's the last (potentially incomplete) line
-                                new_buffer.push_str(line);
-                            }
-                        }
-                        buffer = new_buffer; // Update buffer with the incomplete part
-
-                        for line in lines_to_process {
-                            let line = line.trim();
-                            if line.is_empty() {
-                                continue;
-                            }
-
-                            let parsed_response: serde_json::Value =
-                                match serde_json::from_str(&line) {
-                                    Ok(res) => res,
-                                    Err(e) => {
-                                        return Some((
-                                            Err(anyhow::Error::new(e)),
-                                            (byte_stream, buffer),
-                                        ));
-                                    }
-                                };
-
-                            if let Some(arr) = parsed_response.as_array() {
-                                if arr.len() == 2 {
-                                    if let (Some(blurb), Some(content)) =
-                                        (arr[0].as_str(), arr[1].as_str())
-                                    {
-                                        return Some((
-                                            Ok((blurb.to_string(), content.to_string())),
-                                            (byte_stream, buffer),
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if generate_response.done {
-                        // Process any remaining content in the buffer when done
-                        if !buffer.is_empty() {
-                            let line = buffer.trim().to_string();
-                            buffer.clear(); // Clear buffer after processing
-                            if line.is_empty() {
-                                return None;
-                            }
-                            let parsed_response: serde_json::Value =
-                                match serde_json::from_str(&line) {
-                                    Ok(res) => res,
-                                    Err(e) => {
-                                        return Some((
-                                            Err(anyhow::Error::new(e)),
-                                            (byte_stream, buffer),
-                                        ));
-                                    }
-                                };
-                            if let Some(arr) = parsed_response.as_array() {
-                                if arr.len() == 2 {
-                                    if let (Some(blurb), Some(content)) =
-                                        (arr[0].as_str(), arr[1].as_str())
-                                    {
-                                        return Some((
-                                            Ok((blurb.to_string(), content.to_string())),
-                                            (byte_stream, buffer),
-                                        ));
-                                    }
-                                }
-                            }
-                        }
-                        return None;
-                    }
-                }
-            },
-        );
-
-        Ok(Box::pin(stream))
+        Ok(OllamaStream {
+            reader,
+            buffer: String::new(),
+        })
     }
 }

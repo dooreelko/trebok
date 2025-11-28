@@ -1,8 +1,7 @@
 use crate::commands::node;
 use crate::config::Settings;
-use crate::llm::get_llm_provider;
+use crate::llm::{AsyncIterator, get_llm_provider};
 use anyhow::{Result, anyhow};
-use futures::StreamExt;
 use std::fs;
 use std::path::Path;
 
