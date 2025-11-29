@@ -9,14 +9,16 @@ use std::path::Path;
 pub struct Node {
     pub id: String,
     pub blurb: String,
+    pub after: Option<String>,
     pub children: Vec<Node>,
 }
 
 impl Node {
-    pub fn new(id: String, blurb: String) -> Self {
+    pub fn new(id: String, blurb: String, after: Option<String>) -> Self {
         Node {
             id,
             blurb,
+            after,
             children: Vec::new(),
         }
     }
@@ -76,7 +78,7 @@ pub fn add(blurb: &str, under: Option<&str>) {
 }
 
 pub fn rm(node_hash: &str) {
-    let pattern = format!("./{} *", node_hash);
+    let pattern = format!("./**/{}*", node_hash);
     let mut node_path_opt = None;
     for entry in glob(&pattern).expect("Failed to read glob pattern") {
         if let Ok(p) = entry {
@@ -99,18 +101,55 @@ pub fn rm(node_hash: &str) {
 
 fn print_nodes_recursive(nodes: &[Node], prefix: &str) {
     for node in nodes {
-        println!("{}{}", prefix, node.blurb);
+        println!("{}{} {}", prefix, node.id, node.blurb);
         print_nodes_recursive(&node.children, &format!("  {}", prefix));
     }
+}
+
+fn sort_by_after_attribute(nodes: &mut Vec<Node>) {
+    // Topological sort based on "after" attribute
+    let mut sorted = Vec::new();
+    let mut remaining: Vec<_> = nodes.drain(..).collect();
+
+    while !remaining.is_empty() {
+        let mut progress = false;
+
+        for i in (0..remaining.len()).rev() {
+            let node = &remaining[i];
+
+            // Check if this node can be placed
+            let can_place = match &node.after {
+                None => true, // No dependency, can be placed anytime
+                Some(after_id) => {
+                    // Check if the node we depend on is already in sorted
+                    sorted.iter().any(|n: &Node| n.id == *after_id)
+                }
+            };
+
+            if can_place {
+                let node = remaining.remove(i);
+                sorted.push(node);
+                progress = true;
+            }
+        }
+
+        // If no progress was made, we have a circular dependency or missing reference
+        // Just add remaining nodes in their current order
+        if !progress && !remaining.is_empty() {
+            sorted.extend(remaining.drain(..));
+            break;
+        }
+    }
+
+    *nodes = sorted;
 }
 
 fn get_nodes_recursive(dir: &Path) -> Vec<Node> {
     let mut nodes = Vec::new();
     if let Ok(entries) = fs::read_dir(dir) {
-        let mut sorted_entries: Vec<_> = entries.filter_map(Result::ok).collect();
-        sorted_entries.sort_by_key(|entry| entry.path());
+        let entries_vec: Vec<_> = entries.filter_map(Result::ok).collect();
 
-        for entry in sorted_entries {
+        for entry in entries_vec {
             let path = entry.path();
             if path.is_dir() {
                 let meta_path = path.join("meta.hocon");
@@ -120,13 +159,27 @@ fn get_nodes_recursive(dir: &Path) -> Vec<Node> {
                     if parts.len() == 2 {
                         let id = parts[0].to_string();
                         let blurb = parts[1].to_string();
-                        let mut node = Node::new(id, blurb);
+
+                        // Read the after attribute from meta.hocon
+                        let after = if let Ok(hocon) = HoconLoader::new()
+                            .load_file(&meta_path)
+                            .and_then(|loader| loader.hocon())
+                        {
+                            hocon["after"].as_string()
+                        } else {
+                            None
+                        };
+
+                        let mut node = Node::new(id, blurb, after);
                         node.children = get_nodes_recursive(&path);
                         nodes.push(node);
                     }
                 }
             }
         }
+
+        // Sort nodes according to "after" ordering
+        sort_by_after_attribute(&mut nodes);
     }
     nodes
 }
@@ -151,7 +204,7 @@ pub fn ls() {
 
     if let Some(index) = starting_node_index {
         let starting_node = all_nodes.remove(index);
-        println!("{}", starting_node.blurb);
+        println!("{} {}", starting_node.id, starting_node.blurb);
         print_nodes_recursive(&starting_node.children, "  ");
     } else {
         eprintln!("Starting node with id {} not found.", starting_node_id);
@@ -159,7 +212,7 @@ pub fn ls() {
 
     // Print remaining root nodes
     for node in all_nodes {
-        println!("{}", node.blurb);
+        println!("{} {}", node.id, node.blurb);
         print_nodes_recursive(&node.children, "  ");
     }
 }
