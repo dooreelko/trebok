@@ -28,32 +28,59 @@ Created a dedicated `Meta` struct to represent the metadata stored in meta.hocon
 - Implements Serialize and Deserialize for potential future use
 - The `after` field is skipped during serialization if None
 
-### Meta.hocon File Structure
-The metadata file now uses an explicit `meta` section for better organization:
-```hocon
-meta {
-  title: "Node Title"
+### Meta.yaml File Structure
+The metadata file uses YAML format with an explicit `meta` section for better organization:
+```yaml
+meta:
+  title: Node Title
   after: "123456"  # Optional
-}
 ```
+
+**Switch from HOCON to YAML:**
+- YAML has excellent Rust support (serde_yaml)
+- Proper serialization/deserialization instead of manual string building
+- No good HOCON writing library available in Rust
+- Human-readable and widely supported format
 
 This provides:
 - Clear namespacing for metadata fields
 - Better extensibility for future additions (e.g., tags, status, etc.)
 - Consistent structure across all node metadata files
+- Type-safe serialization with serde
 
 ### Node Struct (`bok/src/node/node.rs`)
 - Moved the Node struct from `commands/node.rs` to a dedicated module
 - **Changed structure:** Node now contains a `meta: Meta` field instead of individual `blurb` and `after` fields
 - Added accessor methods `blurb()` and `after()` for backwards compatibility
-- `from_meta()` method loads the entire meta.hocon structure into the Meta struct
+- `from_meta()` method loads the entire meta.yaml structure into the Meta struct
   - Returns `Result<Node, String>` to handle parsing errors gracefully
-  - Extracts `title` and `after` fields from the `meta` section in HOCON
-  - No longer requires blurb parameter (reads it from meta.hocon)
-- `save_meta()` method persists the Meta struct to meta.hocon file with proper formatting
-  - Writes metadata within an explicit `meta { }` section
-  - Properly indented fields for readability
+  - Uses serde_yaml to deserialize the entire file structure
+  - Extracts `title` and `after` fields from the `meta` section in YAML
+  - No longer requires blurb parameter (reads it from meta.yaml)
+- `save_meta()` method persists the Meta struct to meta.yaml file
+  - Uses serde_yaml::to_string() for proper YAML serialization
+  - Automatically formats with correct YAML indentation
+  - No manual string building required
 - Made Node cloneable for use in different contexts
+
+### bok.yaml Configuration File
+The global configuration file has also been migrated from HOCON to YAML:
+```yaml
+llm:
+  provider: ollama
+  model: qwen3:8b
+  location: http://localhost
+  port: 11434
+title: My New Book
+author: Unknown Author
+starting_node: "123456789"
+```
+
+**Configuration Loading:**
+- `config.rs` now uses serde_yaml for deserialization
+- Default values provided via Default trait on LlmSettings
+- Clean struct-based configuration instead of HOCON parsing
+- Type-safe with proper error handling via anyhow::Error
 
 ### NodeManager (`bok/src/node/node_manager.rs`)
 Implemented as a collection of static methods providing:
@@ -99,14 +126,24 @@ Updated all modules that were using the old node command functions:
 - Enables full deserialization of meta.hocon in one operation
 - Accessor methods on Node maintain backwards compatibility while internal structure is cleaner
 
-### Explicit Meta Section in HOCON
-**Decision:** Use an explicit `meta { }` section in meta.hocon files instead of placing fields at the root level.
+### Switch from HOCON to YAML
+**Decision:** Migrate all configuration and metadata files from HOCON to YAML format.
+**Rationale:**
+- **Writing Support:** No robust HOCON writing library available in Rust (we were manually building HOCON strings)
+- **Serde Integration:** YAML has excellent serde support with serde_yaml crate
+- **Type Safety:** Proper serialization/deserialization eliminates manual string building errors
+- **Industry Standard:** YAML is more widely supported and familiar to developers
+- **Readability:** YAML is clean and human-readable like HOCON
+- **Tooling:** Better editor support and validation tools for YAML
+
+### Explicit Meta Section in YAML
+**Decision:** Use an explicit `meta:` section in meta.yaml files instead of placing fields at the root level.
 **Rationale:**
 - Provides clear namespacing for metadata fields
-- Better organization and readability of the HOCON file
+- Better organization and readability of the YAML file
 - Allows for future expansion with other top-level sections (e.g., `content`, `links`, `tags`)
 - More maintainable as the metadata structure grows
-- Follows HOCON best practices for structured configuration
+- Follows best practices for structured configuration
 
 ### Module Organization
 **Decision:** Create a separate top-level `node` module rather than nesting it under `commands`.

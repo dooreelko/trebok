@@ -2,7 +2,7 @@ use crate::node::NodeManager;
 
 pub fn add(blurb: &str, under: Option<&str>) {
     match NodeManager::create_node(blurb, blurb, under, None) {
-        Ok(_) => println!("Created new node directory, text.qmd and meta.hocon."),
+        Ok(_) => println!("Created new node directory, text.qmd and meta.yaml."),
         Err(e) => eprintln!("Error: {}", e),
     }
 }

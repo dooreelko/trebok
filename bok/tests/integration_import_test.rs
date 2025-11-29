@@ -17,16 +17,14 @@ fn test_import_command_with_dummy_provider() -> Result<(), Box<dyn std::error::E
         "This is the first part.\n\nThis is the second part.\n\n# Heading for third part.";
     fs::write(&test_file_path, test_file_content)?;
 
-    // Create bok.conf for the test with dummy provider
-    let bok_conf_content = r#"
-    llm {
-        provider = "dummy"
-        model = "qwen3:8b"
-        location = "http://localhost"
-        port = 11434
-    }
-    "#;
-    fs::write(temp_path.join("bok.conf"), bok_conf_content)?;
+    // Create bok.yaml for the test with dummy provider
+    let bok_yaml_content = r#"llm:
+  provider: dummy
+  model: "qwen3:8b"
+  location: http://localhost
+  port: 11434
+"#;
+    fs::write(temp_path.join("bok.yaml"), bok_yaml_content)?;
 
     // Run the import command from the temporary directory
     let mut cmd = Command::new(cargo_bin!("bok"));
@@ -57,7 +55,7 @@ fn test_import_command_with_dummy_provider() -> Result<(), Box<dyn std::error::E
                     .is_ok()
                 {
                     node_count += 1;
-                    assert!(path.join("meta.hocon").exists());
+                    assert!(path.join("meta.yaml").exists());
                     assert!(path.join("text.qmd").exists());
                 }
             }
@@ -120,7 +118,7 @@ fn test_import_command_with_ollama_provider() -> Result<(), Box<dyn std::error::
                     .is_ok()
                 {
                     node_count += 1;
-                    assert!(path.join("meta.hocon").exists());
+                    assert!(path.join("meta.yaml").exists());
                     assert!(path.join("text.qmd").exists());
                 }
             }

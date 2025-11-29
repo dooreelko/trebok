@@ -1,5 +1,5 @@
+use crate::config::{FullConfig, LlmSettings};
 use crate::node::NodeManager;
-use hocon::HoconLoader;
 use std::fs;
 
 pub fn run(blurb: Option<&str>) {
@@ -7,22 +7,15 @@ pub fn run(blurb: Option<&str>) {
     let starting_node_id =
         NodeManager::create_node(starting_node_title, starting_node_title, None, None).unwrap();
 
-    let hocon_content_string = format!(
-        r#"
-title = "My New Book"
-author = "Unknown Author"
-starting_node = "{}"
-        "#,
-        starting_node_id
-    );
+    let bok_config = FullConfig {
+        llm: LlmSettings::default(),
+        title: Some("My New Book".to_string()),
+        author: Some("Unknown Author".to_string()),
+        starting_node: Some(starting_node_id.to_string()),
+    };
 
-    // Validate the HOCON string before writing
-    HoconLoader::new()
-        .load_str(&hocon_content_string)
-        .unwrap()
-        .hocon()
-        .unwrap();
+    let yaml_content = serde_yaml::to_string(&bok_config).unwrap();
 
-    fs::write("bok.hocon", hocon_content_string).unwrap();
-    println!("Created bok.hocon and starting node directory.");
+    fs::write("bok.yaml", yaml_content).unwrap();
+    println!("Created bok.yaml and starting node directory.");
 }

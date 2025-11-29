@@ -1,10 +1,15 @@
 use super::node::Node;
 use glob::glob;
-use hocon::HoconLoader;
 use murmur3::murmur3_32;
+use serde::Deserialize;
 use std::fs;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
+
+#[derive(Deserialize)]
+struct BokConfig {
+    starting_node: String,
+}
 
 pub struct NodeManager;
 
@@ -67,7 +72,7 @@ impl NodeManager {
         let text_file_path = path.join("text.qmd");
         fs::write(text_file_path, content).unwrap();
 
-        let meta_file_path = path.join("meta.hocon");
+        let meta_file_path = path.join("meta.yaml");
         let node = Node::new(
             node_id.to_string(),
             blurb.to_string(),
@@ -95,7 +100,7 @@ impl NodeManager {
             for entry in entries_vec {
                 let path = entry.path();
                 if path.is_dir() {
-                    let meta_path = path.join("meta.hocon");
+                    let meta_path = path.join("meta.yaml");
                     if meta_path.exists() {
                         let node_name = path.file_name().unwrap().to_str().unwrap();
                         let parts: Vec<&str> = node_name.splitn(2, ' ').collect();
@@ -177,7 +182,7 @@ impl NodeManager {
             for entry in entries.filter_map(Result::ok) {
                 let path = entry.path();
                 if path.is_dir() {
-                    let meta_path = path.join("meta.hocon");
+                    let meta_path = path.join("meta.yaml");
                     if meta_path.exists() {
                         let node_name = path.file_name().unwrap().to_str().unwrap();
                         let parts: Vec<&str> = node_name.splitn(2, ' ').collect();
@@ -203,15 +208,13 @@ impl NodeManager {
 
     /// List nodes starting from the configured starting node
     pub fn list_nodes() -> Result<(), String> {
-        let hocon = HoconLoader::new()
-            .load_file("bok.hocon")
-            .map_err(|e| format!("Unable to load bok.hocon: {}", e))?
-            .hocon()
-            .map_err(|e| format!("Unable to parse bok.hocon: {}", e))?;
+        let content = fs::read_to_string("bok.yaml")
+            .map_err(|e| format!("Unable to load bok.yaml: {}", e))?;
 
-        let starting_node_id = hocon["starting_node"]
-            .as_string()
-            .ok_or("starting_node not found in bok.hocon")?;
+        let bok_config: BokConfig = serde_yaml::from_str(&content)
+            .map_err(|e| format!("Unable to parse bok.yaml: {}", e))?;
+
+        let starting_node_id = bok_config.starting_node;
 
         let mut all_nodes = Self::get_nodes_recursive(Path::new("."));
 

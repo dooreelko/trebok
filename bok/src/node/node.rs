@@ -1,9 +1,8 @@
-use hocon::HoconLoader;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
 
-/// Metadata structure for a node, stored in meta.hocon
+/// Metadata structure for a node, stored in meta.yaml
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Meta {
     /// The node's title/blurb
@@ -11,6 +10,12 @@ pub struct Meta {
     /// Optional ID of sibling node that should precede this one (for ordering)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub after: Option<String>,
+}
+
+/// Wrapper structure for the meta.yaml file format
+#[derive(Debug, Serialize, Deserialize)]
+struct MetaFile {
+    meta: Meta,
 }
 
 impl Meta {
@@ -47,43 +52,30 @@ impl Node {
         }
     }
 
-    /// Load node from meta.hocon file, deserializing the entire structure
+    /// Load node from meta.yaml file, deserializing the entire structure
     pub fn from_meta(meta_path: &Path, id: String) -> Result<Self, String> {
-        let hocon = HoconLoader::new()
-            .load_file(meta_path)
-            .map_err(|e| format!("Failed to load meta.hocon: {}", e))?
-            .hocon()
-            .map_err(|e| format!("Failed to parse meta.hocon: {}", e))?;
+        let content = fs::read_to_string(meta_path)
+            .map_err(|e| format!("Failed to read meta.yaml: {}", e))?;
 
-        // Extract fields from HOCON meta section
-        let meta_section = &hocon["meta"];
-
-        let title = meta_section["title"]
-            .as_string()
-            .ok_or("Missing 'meta.title' field in meta.hocon")?;
-
-        let after = meta_section["after"].as_string();
-
-        let meta = Meta::new(title, after);
+        let meta_file: MetaFile = serde_yaml::from_str(&content)
+            .map_err(|e| format!("Failed to parse meta.yaml: {}", e))?;
 
         Ok(Node {
             id,
-            meta,
+            meta: meta_file.meta,
             children: Vec::new(),
         })
     }
 
-    /// Save node metadata to meta.hocon file
+    /// Save node metadata to meta.yaml file
     pub fn save_meta(&self, meta_path: &Path) -> Result<(), String> {
-        let mut meta_content = String::from("meta {\n");
-        meta_content.push_str(&format!(r#"  title: "{}""#, self.meta.title));
-        meta_content.push_str("\n");
-        if let Some(ref after_id) = self.meta.after {
-            meta_content.push_str(&format!(r#"  after: "{}""#, after_id));
-            meta_content.push_str("\n");
-        }
-        meta_content.push_str("}");
+        let meta_file = MetaFile {
+            meta: self.meta.clone(),
+        };
 
-        fs::write(meta_path, meta_content).map_err(|e| format!("Failed to write meta.hocon: {}", e))
+        let yaml_content = serde_yaml::to_string(&meta_file)
+            .map_err(|e| format!("Failed to serialize meta to YAML: {}", e))?;
+
+        fs::write(meta_path, yaml_content).map_err(|e| format!("Failed to write meta.yaml: {}", e))
     }
 }
