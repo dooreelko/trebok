@@ -1,11 +1,11 @@
-use super::node;
+use crate::node::NodeManager;
 use hocon::HoconLoader;
 use std::fs;
 
 pub fn run(blurb: Option<&str>) {
     let starting_node_title = blurb.unwrap_or("Starting Node");
     let starting_node_id =
-        node::create_node(starting_node_title, starting_node_title, None, None).unwrap();
+        NodeManager::create_node(starting_node_title, starting_node_title, None, None).unwrap();
 
     let hocon_content_string = format!(
         r#"

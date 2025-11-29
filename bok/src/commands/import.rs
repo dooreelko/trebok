@@ -1,6 +1,6 @@
-use crate::commands::node;
 use crate::config::Settings;
 use crate::llm::{AsyncIterator, get_llm_provider};
+use crate::node::NodeManager;
 use anyhow::{Result, anyhow};
 use std::fs;
 use std::path::Path;
@@ -30,7 +30,7 @@ pub async fn run(file: &str, under: Option<&str>) -> Result<()> {
             Ok((blurb, content)) => {
                 count += 1;
                 println!("Creating node for part {}: {}", count, blurb);
-                let new_node_id = node::create_node(
+                let new_node_id = NodeManager::create_node(
                     &blurb,
                     &content,
                     initial_under_node_id.as_deref(),
@@ -52,7 +52,7 @@ pub async fn run(file: &str, under: Option<&str>) -> Result<()> {
     // Validation step
     let mut reconstructed_content = String::new();
     for node_id in &created_node_ids {
-        let content = node::get_node_content(node_id)
+        let content = NodeManager::get_node_content(node_id)
             .map_err(|e| anyhow!("Failed to get content for node {}: {}", node_id, e))?;
         reconstructed_content.push_str(&content);
         reconstructed_content.push_str("\n\n"); // Add double newline as a separator, matching dummy LLM

@@ -5,6 +5,7 @@ mod commands;
 mod config;
 mod llm;
 mod llm_providers;
+mod node;
 
 // HACK: This is a workaround for clap's dynamic completions.
 // It leaks memory, but this function is only called when generating completions,

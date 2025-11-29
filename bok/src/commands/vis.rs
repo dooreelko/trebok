@@ -1,36 +1,30 @@
-use glob::glob;
-use hocon::HoconLoader;
+use crate::node::NodeManager;
 use serde::Serialize;
+use std::path::Path;
 
 #[derive(Serialize)]
-struct Node {
+struct VisNode {
     id: String,
     title: String,
 }
 
 pub fn d3() {
-    let mut nodes = Vec::new();
-    for entry in glob("./*").expect("Failed to read glob pattern") {
-        match entry {
-            Ok(path) => {
-                if path.is_dir() {
-                    let meta_path = path.join("meta.hocon");
-                    if meta_path.exists() {
-                        let hocon = HoconLoader::new()
-                            .load_file(meta_path)
-                            .expect("Unable to load hocon file")
-                            .hocon()
-                            .unwrap();
-                        let title = hocon["title"].as_string().unwrap_or_default();
-                        let id = path.file_name().unwrap().to_str().unwrap().to_string();
-                        nodes.push(Node { id, title });
-                    }
-                }
-            }
-            Err(e) => println!("{:?}", e),
+    let nodes = NodeManager::get_nodes_recursive(Path::new("."));
+
+    fn flatten_nodes(nodes: &[crate::node::Node], result: &mut Vec<VisNode>) {
+        for node in nodes {
+            result.push(VisNode {
+                id: node.id.clone(),
+                title: node.blurb().to_string(),
+            });
+            flatten_nodes(&node.children, result);
         }
     }
-    let json = serde_json::to_string_pretty(&nodes).unwrap();
+
+    let mut vis_nodes = Vec::new();
+    flatten_nodes(&nodes, &mut vis_nodes);
+
+    let json = serde_json::to_string_pretty(&vis_nodes).unwrap();
     println!("{}", json);
 }
 
